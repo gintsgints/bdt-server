@@ -51,6 +51,8 @@ async fn hello_world(req: &mut Request, res: &mut Response) -> anyhow::Result<()
         select.as_string()
     };
 
+    println!("Query: {}", query_str);
+
     let mut my_query = query(&query_str);
     for parameter in request.filters {
         my_query = my_query.bind(parameter.value);
