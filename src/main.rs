@@ -1,7 +1,10 @@
 use salvo::{__private::once_cell::sync::OnceCell, prelude::*};
 use anyhow::{Result};
+use serde::Serialize;
 use sqlx::sqlite::SqlitePool;
-use std::env;
+use sqlx::{Row, Column};
+
+use std::{env, collections::HashMap};
 
 static SQLITE: OnceCell<SqlitePool> = OnceCell::new();
 
@@ -11,18 +14,36 @@ pub fn get_sqlite() -> &'static SqlitePool {
 }
 
 #[handler]
-async fn hello_world(res: &mut Response) -> Result<()> {
-    let recs = sqlx::query(
-        r#"
-SELECT config_type
-FROM TT_CONFIG
-        "#
-    )
-    .fetch_all(get_sqlite())
-    .await?;
+async fn hello_world(req: &mut Request, res: &mut Response) -> Result<()> {
 
-    res.render("hello world!");
+    let table = req.query::<String>("table").unwrap();
+
+    let sql_string = sql_query_builder::Select::new()
+        .select("config_type")
+        .from(&table)
+        .as_string();
+
+    let recs = sqlx::query(&sql_string)
+        .fetch_all(get_sqlite())
+        .await?;
+    let mut rows:Vec<BdtRow> = vec![];
+    for rec in recs {
+        let mut values: HashMap<String, String> = HashMap::new();
+        for col in rec.columns() {
+            let name = col.name();
+            values.insert(name.to_string(), rec.get(name));        
+        }
+        let row = BdtRow { values };
+        rows.push(row);
+    }
+
+    res.render(Json(rows));
     Ok(())
+}
+
+#[derive(Serialize)]
+pub struct BdtRow {
+    pub values: HashMap<String, String>
 }
 
 #[tokio::main]

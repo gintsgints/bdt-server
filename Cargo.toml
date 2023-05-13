@@ -6,6 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 salvo = { version = "0.40", features = ["anyhow"]}
+serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "1", features = ["macros"] }
 sqlx = { version = "0.6.3", features = ["runtime-tokio-rustls", "sqlite"] }
+sql_query_builder = "1.0.2"
 anyhow = "1.0.70"

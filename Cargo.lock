@@ -148,6 +148,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "salvo",
+ "serde",
+ "sql_query_builder",
  "sqlx",
  "tokio",
 ]
@@ -1595,6 +1597,12 @@ checksum = "6980e8d7511241f8acf4aebddbb1ff938df5eebe98691418c4468d0b72a96a67"
 dependencies = [
  "lock_api",
 ]
+
+[[package]]
+name = "sql_query_builder"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fcc05493625711b0e248bb83095b5ab7a2083bd2997a14829a9510b5c0548979"
 
 [[package]]
 name = "sqlformat"
