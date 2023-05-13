@@ -4,5 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
+salvo = { version = "0.40", features = ["anyhow"]}
+tokio = { version = "1", features = ["macros"] }
+sqlx = { version = "0.6.3", features = ["runtime-tokio-rustls", "sqlite"] }
+anyhow = "1.0.70"
