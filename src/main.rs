@@ -1,8 +1,8 @@
 use salvo::{__private::once_cell::sync::OnceCell, prelude::*};
-use anyhow::{Result};
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 use sqlx::sqlite::SqlitePool;
-use sqlx::{Row, Column};
+use sqlx::sqlite::SqliteRow;
+use sqlx::{Row, Column, query};
 
 use std::{env, collections::HashMap};
 
@@ -13,19 +13,51 @@ pub fn get_sqlite() -> &'static SqlitePool {
     unsafe { SQLITE.get_unchecked() }
 }
 
+#[derive(Deserialize)]
+struct BdtFilter {
+    column: String,
+    operator: String,
+    value: String,
+}
+
+#[derive(Deserialize, Default)]
+struct BdtRequest {
+    table: String,
+    columns: Vec<String>,
+    filters: Vec<BdtFilter>
+}
+
 #[handler]
-async fn hello_world(req: &mut Request, res: &mut Response) -> Result<()> {
+async fn hello_world(req: &mut Request, res: &mut Response) -> anyhow::Result<()> {
 
-    let table = req.query::<String>("table").unwrap();
+    let request = req.parse_json::<BdtRequest>().await.unwrap_or_default();
 
-    let sql_string = sql_query_builder::Select::new()
-        .select("config_type")
-        .from(&table)
-        .as_string();
+    let query_str = {
+        let select_str = request.columns.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(",");
+        let mut constraints: Vec<String> = vec![];
 
-    let recs = sqlx::query(&sql_string)
-        .fetch_all(get_sqlite())
-        .await?;
+        for (i, filter) in request.filters.iter().enumerate() {
+            let constraint = format!("{} {} ?{}", filter.column, filter.operator, i + 1);
+            constraints.push(constraint);
+        };
+
+        let mut select = sql_query_builder::Select::new()
+            .select(&select_str)
+            .from(request.table.as_str());
+
+        for constraint in &constraints {
+            select = select.where_clause(&constraint);
+        }
+        select.as_string()
+    };
+
+    let mut my_query = query(&query_str);
+    for parameter in request.filters {
+        my_query = my_query.bind(parameter.value);
+    }
+
+    let recs: Vec<SqliteRow> = my_query.fetch_all(get_sqlite()).await.unwrap();
+
     let mut rows:Vec<BdtRow> = vec![];
     for rec in recs {
         let mut values: HashMap<String, String> = HashMap::new();
